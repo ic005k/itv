@@ -1,0 +1,99 @@
+name: Update
+
+on:
+  push:
+  schedule:
+    # 每30分钟
+    # - cron: 0,30 * * * *
+    
+    # 每隔3个小时
+     - cron: '0 */3 * * *'
+    
+    # 每天13:30和22:30
+    # - cron:  '30 5,14 * * *'
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  Update:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: GetTime
+      run: echo "GET_TIME=$(date +'%Y-%m-%d %H:%M:%S CST')" >> $GITHUB_ENV
+
+    - name: Update
+      run: |
+        # 央视源
+        # rm -f CCTV2.m3u && wget https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u -O CCTV2.m3u
+        
+        rm -f CCTV2.m3u && wget https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u -O CCTV2.m3u
+        rm -f CCTV1.m3u && wget https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv6.m3u -O CCTV1.m3u
+        
+        rm -f CCTV.m3u && wget https://live.zbds.top/tv/iptv6.m3u -O CCTV.m3u
+        
+        # sed -i -n '/央视/,+1p' CCTV.m3u
+        # sed -i '1i #EXTM3U' CCTV.m3u
+        # sed -i '/^\s*$/d' CCTV.m3u
+
+        # 卫视源
+        rm -f CNTV.m3u && touch CNTV.m3u
+        # wget https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u -O CNTV1.m3u && sed -i -n '/卫视/,+1p' CNTV1.m3u         
+        # wget https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u -O CNTV2.m3u && sed -i -n '/数字/,+1p' CNTV2.m3u         
+        # wget https://raw.githubusercontent.com/fanmingming/live/main/tv/m3u/ipv6.m3u -O CNTV3.m3u && sed -i -n '/百视/,+1p' CNTV3.m3u
+        
+        # wget https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv6.m3u -O CNTV1.m3u && sed -i -n '/卫视/,+1p' CNTV1.m3u
+        # wget https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv6.m3u -O CNTV2.m3u && sed -i -n '/数字/,+1p' CNTV2.m3u
+        # wget https://raw.githubusercontent.com/suxuang/myIPTV/refs/heads/main/ipv6.m3u -O CNTV3.m3u && sed -i -n '/百视/,+1p' CNTV3.m3u
+        # cat CNTV1.m3u >> CNTV.m3u
+        # cat CNTV2.m3u >> CNTV.m3u
+        # cat CNTV3.m3u >> CNTV.m3u
+        rm -f CNTV1.m3u CNTV2.m3u CNTV3.m3u
+        sed -i '1i #EXTM3U' CNTV.m3u
+        sed -i '/^\s*$/d' CNTV.m3u
+        
+        # 整合源
+        rm -f IPTV.m3u && touch IPTV.m3u
+        cat CCTV.m3u >> IPTV.m3u
+
+        rm -f IPTV1.m3u && touch IPTV1.m3u
+        cat CCTV1.m3u >> IPTV.m3u
+
+        rm -f IPTV2.m3u && touch IPTV2.m3u         
+        cat CCTV2.m3u >> IPTV.m3u
+
+         rm -f IPTV1.m3u && touch IPTV1.m3u
+        cat CCTV1.m3u >> IPTV1.m3u
+
+        rm -f IPTV2.m3u && touch IPTV2.m3u         
+        cat CCTV2.m3u >> IPTV2.m3u
+        
+        # cat CNTV.m3u >> IPTV.m3u
+        sed -i '/#EXTM3U/d' IPTV.m3u
+        sed -i '1i #EXTM3U' IPTV.m3u
+        sed -i '/^\s*$/d' IPTV.m3u
+
+        # 节目源
+        rm -f EPG.xml && wget https://epg.112114.xyz/pp.xml -O EPG.xml
+        
+        echo "Auto Update iTV in ${GET_TIME}" > README.md
+        # echo "https://gitee.com/ic005k/itv/raw/main/IPTV.m3u" >> README.md
+        # echo "https://gitee.com/ic005k/itv/raw/main/IPTV1.m3u" >> README.md
+        # echo "https://gitee.com/ic005k/itv/raw/main/IPTV2.m3u" >> README.md
+       
+              
+    - name: Clean
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git checkout --orphan latest_branch
+        git add -A
+        git commit -am "${GET_TIME}"
+        git branch -D main
+        git branch -m main
+
+    - name: Push
+      run: git push -f origin main
